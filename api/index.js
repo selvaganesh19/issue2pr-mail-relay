@@ -2,7 +2,9 @@
 module.exports = (req, res) => {
   const provider = process.env.RESEND_API_KEY
     ? "resend"
-    : (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD ? "gmail" : "none");
+    : (process.env.SMTP_HOST
+        ? "smtp"
+        : (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD ? "gmail" : "none"));
   const auth = /^(1|true|yes)$/i.test(process.env.REQUIRE_OIDC || "")
     ? "oidc-required"
     : (process.env.RELAY_TOKEN ? "relay-token" : "open");

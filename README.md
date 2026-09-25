@@ -39,8 +39,9 @@ All optional except a provider. Set only what you need.
 
 | var | purpose |
 |-----|---------|
-| `RESEND_API_KEY` + `MAIL_FROM` | **Provider (preferred).** Send via Resend from your own verified domain. `MAIL_FROM` e.g. `Issue2PR <agent@yourdomain.com>`. |
-| `MAIL_USERNAME` + `MAIL_PASSWORD` | **Provider (fallback).** Gmail SMTP; `MAIL_PASSWORD` is a Gmail App Password. Used only when `RESEND_API_KEY` is unset. |
+| `RESEND_API_KEY` + `MAIL_FROM` | **Provider.** Send via Resend from your own verified domain. `MAIL_FROM` e.g. `Issue2PR <agent@yourdomain.com>`. Needs a domain. |
+| `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` (+ `SMTP_PORT`, `SMTP_FROM`) | **Provider.** Any SMTP service — SendGrid, Brevo, Mailgun, Gmail. Works with **single-sender verification, no domain required.** Port defaults to 587. `SMTP_FROM` is the verified sender address. |
+| `MAIL_USERNAME` + `MAIL_PASSWORD` | **Provider (Gmail shortcut).** Gmail SMTP; `MAIL_PASSWORD` is a Gmail App Password. Used only when `RESEND_API_KEY` and `SMTP_HOST` are unset. |
 | `REQUIRE_OIDC` | `1` to **require** a valid GitHub OIDC token on every call. Recommended for public use. |
 | `OIDC_AUDIENCE` | Expected `aud` claim. Default `issue2pr-mail-relay` (the workflow requests this audience). |
 | `OIDC_ALLOWED_OWNERS` | Optional CSV allowlist of repo owners, e.g. `selvaganesh19,acme`. Empty = any owner with a valid token. |
@@ -60,10 +61,15 @@ All optional except a provider. Set only what you need.
 - Auth: leave open, or set `RELAY_TOKEN` and add a matching repo secret.
 
 **Open public use** — hardened:
-1. **Provider = Resend on your own domain.** Do not use personal Gmail for a
-   public service; it will get rate-limited or suspended. Sign up at resend.com,
-   add your domain, set the SPF/DKIM/DMARC DNS records it gives you, create an
-   API key. Set `RESEND_API_KEY` + `MAIL_FROM` (an address at your domain).
+1. **Provider.** Do not use personal Gmail for a public service; it will get
+   rate-limited or suspended.
+   - *No domain?* Use **SendGrid** or **Brevo** with **single-sender
+     verification** — verify one email address (your existing inbox), no DNS or
+     domain needed. Set `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`.
+     Their infra owns the sending reputation, so your personal account is not at
+     risk. Free tiers: SendGrid ~100/day, Brevo ~300/day.
+   - *Have (or willing to buy) a domain?* Use **Resend** with domain DKIM for the
+     best deliverability and volume: `RESEND_API_KEY` + `MAIL_FROM`.
 2. **Auth = OIDC.** Set `REQUIRE_OIDC=1`. The workflow already mints a GitHub
    OIDC token (audience `issue2pr-mail-relay`) and sends it; the relay verifies
    it against GitHub's JWKS and trusts the `repository`/`actor` claims instead of
