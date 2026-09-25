@@ -51,6 +51,8 @@ All optional except a provider. Set only what you need.
 
 ## Deploy to Vercel
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fselvaganesh19%2Fissue2pr-mail-relay)
+
 1. Import this repo at https://vercel.com/new. Framework preset: **Other**.
 2. Add environment variables (at minimum one provider — see table).
 3. Deploy. Your endpoint is `https://<project>.vercel.app/api/send`.
@@ -82,6 +84,58 @@ All optional except a provider. Set only what you need.
 Callers stay config-free: OIDC needs only `permissions: id-token: write` in the
 caller workflow (already set in the reusable workflow and the sample caller) —
 no secret to distribute.
+
+## Deploy your own instance (send from YOUR mail)
+
+The relay is open source (MIT). Anyone can run their own copy so run-result
+emails are sent **from their own mail identity and sending quota**, not a shared
+one. Callers never hold mail secrets either way — the relay owns the sender.
+
+1. **Fork / clone** this repo (or click *Deploy with Vercel* above).
+2. **Deploy to Vercel** (Framework preset: Other). See `.env.example` for every
+   variable.
+3. **Set one provider** in Vercel env (Resend, generic SMTP, or Gmail — see the
+   table above). For anything beyond personal testing, authenticate an owned
+   domain (below) so mail is not spam-filtered.
+4. **(Optional) Harden**: `REQUIRE_OIDC=1` + `OIDC_ALLOWED_OWNERS=<your-user>`,
+   plus Upstash rate limiting.
+5. **Point your caller at it** — pass `relay_url` in your caller workflow:
+   ```yaml
+   jobs:
+     agent:
+       uses: selvaganesh19/Issues2PR/.github/workflows/agent.yml@main
+       secrets: inherit
+       with:
+         notify_email: you@example.com
+         relay_url: https://<your-project>.vercel.app/api/send
+   ```
+   Every run then emails from *your* relay.
+
+### Brevo tips
+
+- SMTP host `smtp-relay.brevo.com`, port `587`. `SMTP_USER` = your Brevo
+  **login email**; `SMTP_PASS` = an **SMTP key** (`xsmtpsib-...`, from
+  **SMTP & API → SMTP**) — *not* your account password and *not* an API key.
+- **Do not send from a freemail `From`** (`@gmail.com`, `@yahoo.com`, …). Under
+  the 2024 Gmail/Yahoo/Microsoft rules Brevo cannot DKIM-sign as gmail.com, so
+  the mail fails DMARC alignment and is spam-filtered or dropped. Sending to your
+  *own* Gmail from your own Gmail is the worst case (looks like spoofing).
+- **Authenticate a domain** (cheap, ~$1–3/yr): Brevo → **Senders, Domains &
+  Dedicated IPs → Domains → Authenticate a domain**, add the DKIM/DMARC DNS
+  records at your registrar, then set `SMTP_FROM=agent@yourdomain`. This is the
+  only reliable path to the inbox. The auto-generated `*.brevosend.com` sender is
+  **not** stable — Brevo blocks it after a few sends pending validation.
+- Free tier ~300 emails/day.
+
+### Upstash Redis (rate limit) tips
+
+- Optional. Without it the relay sends with no per-repo cap.
+- Create a free database at upstash.com, copy its **REST URL** + **REST token**
+  into `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`.
+- `RATE_LIMIT_PER_DAY` caps sends per repo per UTC day (default 50) — bounds
+  blast radius if your relay is public.
+- Fails **open**: if Upstash is unreachable the mail still sends, so a limiter
+  outage never blocks a legitimate run.
 
 ## Notes
 

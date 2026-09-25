@@ -2,6 +2,7 @@
   "name": "issue2pr-mail-relay",
   "version": "2.0.0",
   "description": "Central mail relay for the Issue2PR agent workflow. Holds the sender credentials so caller repos need no mail secrets. Supports GitHub OIDC auth, per-repo rate limiting, and pluggable mail providers.",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "jose": "5.9.6",
