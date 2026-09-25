@@ -36,6 +36,13 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // GitHub privacy noreply addresses accept no inbound mail (no MX record), so
+  // sending would only generate a bounce back to our own inbox. Skip cleanly.
+  if (/@users\.noreply\.github\.com$/i.test(to)) {
+    res.status(200).json({ ok: true, skipped: "github-noreply-undeliverable", to });
+    return;
+  }
+
   const user = process.env.MAIL_USERNAME;
   const pass = process.env.MAIL_PASSWORD;
   if (!user || !pass) {
