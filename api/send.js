@@ -16,7 +16,7 @@
 //
 // PROVIDER (pick one; Resend preferred for public / own-domain sending):
 //   - Resend: RESEND_API_KEY + MAIL_FROM
-//   - Gmail : MAIL_USERNAME + MAIL_PASSWORD (App Password)  [fallback]
+//   - SMTP  : SMTP_HOST + SMTP_USER + SMTP_PASS [+ SMTP_PORT, SMTP_FROM]
 
 const nodemailer = require("nodemailer");
 
@@ -74,7 +74,7 @@ async function rateLimit(repoKey) {
   return { ok: result <= limit, count: result, limit };
 }
 
-// Send via Resend (preferred when RESEND_API_KEY is set) or Gmail SMTP.
+// Send via Resend (preferred when RESEND_API_KEY is set) or generic SMTP.
 async function sendMail({ to, subject, text }) {
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) {
@@ -91,21 +91,20 @@ async function sendMail({ to, subject, text }) {
     }
     return { provider: "resend" };
   }
-  const user = process.env.SMTP_USER || process.env.MAIL_USERNAME;
-  const pass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD;
-  // Generic SMTP (SendGrid, Brevo, Mailgun, Gmail, ...). SMTP_HOST wins; the
-  // MAIL_USERNAME/MAIL_PASSWORD pair is a Gmail shortcut kept for compatibility.
-  const host = process.env.SMTP_HOST || (process.env.MAIL_USERNAME ? "smtp.gmail.com" : "");
-  const port = Number(process.env.SMTP_PORT || (process.env.SMTP_HOST ? 587 : 465));
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  // Generic SMTP: SendGrid, Brevo, Mailgun, Gmail (smtp.gmail.com:465), any host.
+  const host = process.env.SMTP_HOST || "";
+  const port = Number(process.env.SMTP_PORT || 587);
   if (!host || !user || !pass) {
-    throw new Error("no mail provider configured (set RESEND_API_KEY+MAIL_FROM, or SMTP_HOST/SMTP_USER/SMTP_PASS[/SMTP_FROM], or MAIL_USERNAME+MAIL_PASSWORD)");
+    throw new Error("no mail provider configured (set RESEND_API_KEY+MAIL_FROM, or SMTP_HOST/SMTP_USER/SMTP_PASS[/SMTP_FROM])");
   }
-  const from = process.env.SMTP_FROM || process.env.MAIL_FROM || ("Issue2PR Agent <" + user + ">");
+  const from = process.env.SMTP_FROM || ("Issue2PR Agent <" + user + ">");
   const transport = nodemailer.createTransport({
     host, port, secure: port === 465, auth: { user, pass },
   });
   await transport.sendMail({ from, to, subject, text });
-  return { provider: process.env.SMTP_HOST ? "smtp" : "gmail" };
+  return { provider: "smtp" };
 }
 
 module.exports = async (req, res) => {
