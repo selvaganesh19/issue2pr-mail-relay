@@ -1,0 +1,9 @@
+{
+  "name": "issue2pr-mail-relay",
+  "version": "1.0.0",
+  "description": "Central mail relay for the Issue2PR agent workflow. Holds the sender credentials so caller repos need no mail secrets.",
+  "private": true,
+  "dependencies": {
+    "nodemailer": "6.9.14"
+  }
+}
